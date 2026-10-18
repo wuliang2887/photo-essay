@@ -1,0 +1,9 @@
+# source doc and working notes (not part of the published site)
+text.docx
+work-summary.md
+
+# local agent memory
+.workbuddy/
+
+# unused backup photos exported from WeChat
+photos/微信图片_*.jpg
