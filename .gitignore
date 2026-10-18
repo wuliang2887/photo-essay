@@ -7,3 +7,6 @@ work-summary.md
 
 # unused backup photos exported from WeChat
 photos/微信图片_*.jpg
+
+# empty placeholder doc left in photos/
+photos/*.docx
