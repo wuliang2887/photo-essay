@@ -10,3 +10,6 @@ photos/微信图片_*.jpg
 
 # empty placeholder doc left in photos/
 photos/*.docx
+
+# Office temp lock files
+~$*

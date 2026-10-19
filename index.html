@@ -1,481 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wanderer in the great Modern</title>
-  <style>
-    :root {
-      --purple: #8b5cf6;
-      --purple-deep: #6d28d9;
-      --purple-soft: rgba(139, 92, 246, .4);
-      --bg: #0d0a14;
-      --text: #ece9f5;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wanderer in the great Modern</title>
+<style>
+:root{
+  --purple:#8b5cf6; --purple-deep:#6d28d9; --purple-soft:rgba(139,92,246,.4);
+  --bg:#0d0a14; --text:#ece9f5;
+  --fs:1; /* auto-fit text scale: largest value at which every panel fits 1 screen */
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);
+  font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+#progress{position:fixed;top:0;left:0;height:4px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--purple-deep),var(--purple));
+  box-shadow:0 0 12px var(--purple-soft);}
+.hero{height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;position:relative;}
+.hero h1{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:clamp(2rem,6vw,4.6rem);letter-spacing:.04em;color:#fff;
+  text-shadow:0 0 26px var(--purple-soft);padding:0 1rem;}
+.hero .sub{margin-top:1.1rem;color:var(--purple);opacity:.75;font-size:1rem;letter-spacing:.18em;text-transform:uppercase;}
+.scroll-hint{position:absolute;bottom:6vh;color:var(--purple);opacity:.85;
+  font-size:1rem;letter-spacing:.1em;animation:bob 1.8s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(9px)}}
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+.scene{position:relative;}
+.sticky{position:sticky;top:0;height:100vh;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;}
+.img-bg{position:absolute;inset:-12%;background-size:cover;background-position:center;
+  filter:blur(28px) brightness(.55);transform:scale(1.2);
+  transition:opacity .26s ease;}
+.img-fg{position:relative;max-width:90vw;max-height:82vh;object-fit:contain;
+  opacity:0;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.55);
+  transition:transform .30s cubic-bezier(.25,.8,.25,1);}
+.shot-box{position:absolute;bottom:7vh;left:50%;transform:translateX(-50%);
+  background:rgba(13,10,20,.5);border:1px solid var(--purple-soft);color:var(--text);
+  padding:.5rem 1.15rem;border-radius:999px;font-size:.95rem;letter-spacing:.02em;
+  opacity:0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  text-align:center;max-width:82vw;white-space:nowrap;z-index:6;
+  transition:opacity .2s ease;}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
+/* TEXT STAGE: frosted panel parked off the right until stage-text, left-aligned.
+   No inner scroll (overflow:hidden) and the panel is sized so every section fits
+   on one screen: font scales with viewport height (vh), so no vertical movement
+   of the text is needed once it appears. */
+.text-box{position:absolute;inset:0;left:0;top:0;width:100%;height:100%;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:4vh 5vw;overflow:hidden;background:transparent;
+  transform:translateX(102%);opacity:0;pointer-events:none;z-index:5;
+  transition:transform .30s cubic-bezier(.25,.8,.25,1),opacity .18s ease;}
+.text-box .panel{width:100%;max-width:780px;
+  background:rgba(13,10,20,.78);border:1px solid var(--purple-soft);
+  border-radius:14px;
+  padding:calc(1.5rem * var(--fs)) calc(2rem * var(--fs));
+  box-shadow:0 0 46px rgba(139,92,246,.16);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  text-align:left;will-change:transform;}
+.text-box h2{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--purple);font-size:calc(2.2rem * var(--fs));
+  margin-bottom:calc(.55rem * var(--fs));
+  letter-spacing:.03em;text-align:left;}
+.text-box p{font-size:calc(1.5rem * var(--fs));line-height:1.55;
+  margin-bottom:calc(.62rem * var(--fs));color:var(--text);text-align:left;}
+.text-box p:last-child{margin-bottom:0;}
 
-    #progress {
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 4px;
-      width: 0;
-      z-index: 200;
-      background: linear-gradient(90deg, var(--purple-deep), var(--purple));
-      box-shadow: 0 0 12px var(--purple-soft);
-    }
+/* STAGE-TEXT state: hard cut at pd + short bounce-in (no scroll-scrubbed blend) */
+.scene--media.stage-text .img-bg{opacity:0;}
+.scene--media.stage-text .img-fg{transform:translateX(-110vw) scale(.92);}
+.scene--media.stage-text .shot-box{opacity:0 !important;pointer-events:none;}
+.scene--media.stage-text .text-box{transform:translateX(0);opacity:1;pointer-events:auto;}
 
-    .hero {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      position: relative;
-    }
+.poem{font-family:"Times New Roman","PingFang SC","Microsoft YaHei",serif;
+  font-size:clamp(1.1rem,2.4vw,1.7rem);line-height:2;color:var(--text);
+  text-align:center;max-width:min(720px,86vw);opacity:0;
+  text-shadow:0 0 18px rgba(0,0,0,.6);}
+.poem .pline{margin:.1rem 0;}
+.poem .attr{margin-top:1.4rem;font-style:italic;opacity:.82;font-size:.92em;}
 
-    .hero h1 {
-      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: clamp(2rem, 6vw, 4.6rem);
-      letter-spacing: .04em;
-      color: #fff;
-      text-shadow: 0 0 26px var(--purple-soft);
-      padding: 0 1rem;
-    }
+.end{height:100vh;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.4rem,3vw,2.4rem);color:var(--purple);letter-spacing:.06em;
+  text-align:center;padding:0 1rem;}
 
-    .hero .sub {
-      margin-top: 1.1rem;
-      color: var(--purple);
-      opacity: .75;
-      font-size: 1rem;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-    }
-
-    .scroll-hint {
-      position: absolute;
-      bottom: 6vh;
-      color: var(--purple);
-      opacity: .85;
-      font-size: 1rem;
-      letter-spacing: .1em;
-      animation: bob 1.8s ease-in-out infinite;
-    }
-
-    @keyframes bob {
-
-      0%,
-      100% {
-        transform: translateY(0)
-      }
-
-      50% {
-        transform: translateY(9px)
-      }
-    }
-
-    .scene {
-      position: relative;
-    }
-
-    .sticky {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .img-bg {
-      position: absolute;
-      inset: -12%;
-      background-size: cover;
-      background-position: center;
-      filter: blur(28px) brightness(.55);
-      transform: scale(1.2);
-    }
-
-    .img-fg {
-      position: relative;
-      max-width: 90vw;
-      max-height: 82vh;
-      object-fit: contain;
-      opacity: 0;
-      border-radius: 6px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
-    }
-
-    .shot-box {
-      position: absolute;
-      bottom: 7vh;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(13, 10, 20, .5);
-      border: 1px solid var(--purple-soft);
-      color: var(--text);
-      padding: .5rem 1.15rem;
-      border-radius: 999px;
-      font-size: .85rem;
-      letter-spacing: .02em;
-      opacity: 0;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      text-align: center;
-      max-width: 82vw;
-      white-space: nowrap;
-    }
-
-    .text-box {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%) scale(.96);
-      width: min(760px, 86vw);
-      max-height: 84vh;
-      overflow: auto;
-      background: rgba(20, 15, 32, .55);
-      border: 1px solid var(--purple-soft);
-      border-radius: 18px;
-      padding: 2.4rem 2.6rem;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 0 40px rgba(139, 92, 246, .25);
-      opacity: 0;
-    }
-
-    .text-box h2 {
-      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: var(--purple);
-      font-size: 1.9rem;
-      margin-bottom: 1.1rem;
-      letter-spacing: .03em;
-    }
-
-    .text-box p {
-      font-size: 1.02rem;
-      line-height: 1.78;
-      margin-bottom: 1rem;
-      color: var(--text);
-    }
-
-    .text-box p:last-child {
-      margin-bottom: 0;
-    }
-
-    .poem {
-      font-family: "Times New Roman", "PingFang SC", "Microsoft YaHei", serif;
-      font-size: clamp(1.1rem, 2.4vw, 1.7rem);
-      line-height: 2;
-      color: var(--text);
-      text-align: center;
-      max-width: min(720px, 86vw);
-      opacity: 0;
-      text-shadow: 0 0 18px rgba(0, 0, 0, .6);
-    }
-
-    .poem .pline {
-      margin: .1rem 0;
-    }
-
-    .poem .attr {
-      margin-top: 1.4rem;
-      font-style: italic;
-      opacity: .82;
-      font-size: .92em;
-    }
-
-    .end {
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: clamp(1.4rem, 3vw, 2.4rem);
-      color: var(--purple);
-      letter-spacing: .06em;
-      text-align: center;
-      padding: 0 1rem;
-    }
-  </style>
+/* LEFT DRAWER TRIGGER */
+#drawerTab{position:fixed;left:0;top:50%;transform:translateY(-50%);
+  width:34px;height:88px;background:var(--purple);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+  border-radius:0 12px 12px 0;z-index:50;user-select:none;
+  box-shadow:0 0 18px var(--purple-soft);transition:opacity .2s ease;}
+#drawerTab.hidden{opacity:0;pointer-events:none;}
+#drawer{position:fixed;left:0;top:0;height:100vh;width:65vw;max-width:880px;
+  background:#0a0710;transform:translateX(-100%);
+  transition:transform .32s cubic-bezier(.2,.8,.2,1.04);z-index:60;
+  display:flex;align-items:center;justify-content:center;padding:3vh 2vw;
+  box-shadow:0 0 60px rgba(0,0,0,.6);}
+#drawer.open{transform:translateX(0);}
+#drawer img{max-width:100%;max-height:94vh;object-fit:contain;border-radius:6px;cursor:pointer;}
+#drawerScrim{position:fixed;inset:0;background:rgba(0,0,0,.55);
+  opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:55;}
+#drawerScrim.open{opacity:1;pointer-events:auto;}
+</style>
 </head>
-
 <body>
-  <div id="progress"></div>
-  <header class="hero">
-    <h1>Wanderer in the great Modern</h1>
-    <div class="sub">a photo essay</div>
-    <div class="scroll-hint">&#8595; scroll down</div>
-  </header>
+<div id="progress"></div>
+<div id="drawerTab" class="hidden">&#8250;</div>
+<div id="drawer"><img id="drawerImg" src="" alt=""></div>
+<div id="drawerScrim"></div>
+<header class="hero">
+  <h1>Wanderer in the great Modern</h1>
+  <div class="sub">a photo essay</div>
+  <div class="scroll-hint">&#8595; scroll down</div>
+</header>
   <section class="scene scene--poem" style="height:220vh" data-type="poem">
     <div class="sticky">
-      <div class="poem" id="poem">
-        <div class="pline">‘Don&#x27;t cry, my beloved one,</div>
-        <div class="pline">I think we&#x27;ll die together;</div>
-        <div class="pline">Don&#x27;t cry, my rose in the summer,</div>
-        <div class="pline">Everything has already passed.</div>
-        <div class="pline">You see, the cars are flowing through,</div>
-        <div class="pline">and neon lights are shining afar,</div>
-        <div class="pline">They are so much like our dream.’</div>
-        <div class="attr">——Feng Wang, Orphans of the beautiful world</div>
-      </div>
+      <div class="poem" id="poem"><div class="pline">‘Don&#x27;t cry, my beloved one,</div><div class="pline">I think we&#x27;ll die together;</div><div class="pline">Don&#x27;t cry, my rose in the summer,</div><div class="pline">Everything has already passed.</div><div class="pline">You see, the cars are flowing through,</div><div class="pline">and neon lights are shining afar,</div><div class="pline">They are so much like our dream.’</div><div class="attr">——Feng Wang, Orphans of the beautiful world</div></div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:519vh" data-pe="0.1819" data-pd="0.6139">
+  <section class="scene scene--media" style="height:264vh" data-pe="0.3576" data-pd="0.8492">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/intro.png')"></div>
       <img class="img-fg" src="photos/intro.png" alt="">
       <div class="shot-box">(shot beside Bailian Century Mall)</div>
       <div class="text-box">
-        <h2>Introduction</h2>
-        <p>Welcome to photo essay Wanderer in the great Modern. This photo essay is for anyone who live in Shanghai,
-          especially who live nearby or in the city center, where is typically called ‘steel made rainforest’.</p>
-        <p>This essay is aimed to reflect on high buildings, city and modernity. As the city grows ‘larger’, the
-          buildings grow higher, what meaning do they carry? And how do we live inside them? This is the question I want
-          to answer.</p>
-        <p>This essay uses mainly the theory of alienation by Marx, the concept of uncanny from Freud, and the theory of
-          ‘Non-places’ from Marc Augé as critical lens.</p>
-        <p>One thing to say before you read is that, I deliberately use the tone of parallel-narrating. I try to let the
-          text and the picture speak together. Some parts of the text might explain the picture, but most of them will
-          be narrating without describing the picture. I hope I can combine the feeling you get when looking at the
-          photo with the text, instead of spending space on just explaining.</p>
-        <p>Enjoy!</p>
+        <div class="panel">
+          <h2>Introduction</h2>
+          <p>Welcome to photo essay Wanderer in the great Modern. This photo essay is for anyone who live in Shanghai, especially who live nearby or in the city center, where is typically called ‘steel made rainforest’.</p><p>This essay is aimed to reflect on high buildings, city and modernity. As the city grows ‘larger’, the buildings grow higher, what meaning do they carry? And how do we live inside them? This is the question I want to answer.</p><p>This essay uses mainly the theory of alienation by Marx, the concept of uncanny from Freud, and the theory of ‘Non-places’ from Marc Augé as critical lens.</p><p>One thing to say before you read is that, I deliberately use the tone of parallel-narrating. I try to let the text and the picture speak together. Some parts of the text might explain the picture, but most of them will be narrating without describing the picture. I hope I can combine the feeling you get when looking at the photo with the text, instead of spending space on just explaining.</p><p>Enjoy!</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:476vh" data-pe="0.1842" data-pd="0.6217">
+  <section class="scene scene--media" style="height:244vh" data-pe="0.3593" data-pd="0.8534">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/1.jpg')"></div>
       <img class="img-fg" src="photos/1.jpg" alt="">
       <div class="shot-box">(shot beside Lujiazui Software Park)</div>
       <div class="text-box">
-        <h2>1</h2>
-        <p>Look up, and you see the buildings.</p>
-        <p>“People live in cities”. This is a rather political statement. From a more pragmatic, down-to-earth
-          perspective, it is far more accurate to say that “people live in buildings.” Viewed this way, architecture
-          serves as the carrier of that imagined entity we call the “city.”</p>
-        <p>What did the very first human-built structure look like? We may never know for certain. However, we can be
-          fairly confident that its height wasn&#x27;t much taller than our ancestors themselves. Now, take a look at
-          the buildings around us today, and you’ll find their heights could easily accommodate a hundred people stacked
-          one on top of another. We find ourselves in an awkward situation where human creations seem to have grown too
-          large, while the human body remains unchanged. As a result, human beings are rendered insignificant.</p>
-        <p>I’m someone who likes walking in the city, and when I pass by these buildings at night……</p>
+        <div class="panel">
+          <h2>1</h2>
+          <p>Look up, and you see the buildings.</p><p>“People live in cities”. This is a rather political statement. From a more pragmatic, down-to-earth perspective, it is far more accurate to say that “people live in buildings.” Viewed this way, architecture serves as the carrier of that imagined entity we call the “city.”</p><p>What did the very first human-built structure look like? We may never know for certain. However, we can be fairly confident that its height wasn&#x27;t much taller than our ancestors themselves. Now, take a look at the buildings around us today, and you’ll find their heights could easily accommodate a hundred people stacked one on top of another. We find ourselves in an awkward situation where human creations seem to have grown too large, while the human body remains unchanged. As a result, human beings are rendered insignificant.</p><p>I’m someone who likes walking in the city, and when I pass by these buildings at night……</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:433vh" data-pe="0.1870" data-pd="0.6310">
+  <section class="scene scene--media" style="height:224vh" data-pe="0.3614" data-pd="0.8584">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/2.jpg')"></div>
       <img class="img-fg" src="photos/2.jpg" alt="">
       <div class="shot-box">(Shot beside the International Finance Center)</div>
       <div class="text-box">
-        <h2>2</h2>
-        <p>I can’t remember when the word ‘megaconstruction’ struck me when I looked up at the buildings. In fictions,
-          megaconstructions are the artificial constructions that are ridiculously large, like a dam over the whole
-          coastline, a spire that goes all the way up to the stratosphere, or even an iron shell that covers a star. But
-          actually, a building doesn’t need to be that big to seem unreal. If you see a Monolith that stabs into the
-          cloud, can you really determine how big it is?</p>
-        <p>However, if we pause to ponder the deeper implications of the word ‘megaconstruction’, something feels subtly
-          unsettling. The &#x27;massiveness&#x27; of a megaconstruction lies in the fact that its scale is unreasonable,
-          unnecessary, and even wasteful. In other words, rather than serving a practical function, it exists primarily
-          as a visual spectacle.</p>
-        <p>What happens, then, when such a visual spectacle manifests in reality? It signifies that architecture no
-          longer serves human beings. It is not colossal out of necessity. It is colossal to overlook, and emphasize our
-          own insignificance.</p>
+        <div class="panel">
+          <h2>2</h2>
+          <p>I can’t remember when the word ‘megaconstruction’ struck me when I looked up at the buildings. In fictions, megaconstructions are the artificial constructions that are ridiculously large, like a dam over the whole coastline, a spire that goes all the way up to the stratosphere, or even an iron shell that covers a star. But actually, a building doesn’t need to be that big to seem unreal. If you see a Monolith that stabs into the cloud, can you really determine how big it is?</p><p>However, if we pause to ponder the deeper implications of the word ‘megaconstruction’, something feels subtly unsettling. The &#x27;massiveness&#x27; of a megaconstruction lies in the fact that its scale is unreasonable, unnecessary, and even wasteful. In other words, rather than serving a practical function, it exists primarily as a visual spectacle.</p><p>What happens, then, when such a visual spectacle manifests in reality? It signifies that architecture no longer serves human beings. It is not colossal out of necessity. It is colossal to overlook, and emphasize our own insignificance.</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:433vh" data-pe="0.1870" data-pd="0.6310">
+  <section class="scene scene--media" style="height:224vh" data-pe="0.3614" data-pd="0.8584">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/3.jpg')"></div>
       <img class="img-fg" src="photos/3.jpg" alt="">
-      <div class="shot-box">(Shot at Longhua, beside Tencent building)</div>
+      <div class="shot-box">(Shot at Longhua, beside Tencent building))</div>
       <div class="text-box">
-        <h2>3</h2>
-        <p>Although developers and corporations love excuses for turning their office towers into &quot;modern
-          wonders,&quot; they can never quite hide the fact that these buildings have undergone a profound alienation.
-          Their primary client has shifted from human beings to capital. Their capacity to provide a genuine space for
-          living has degraded, degenerating instead into controlling, working hand-in-hand with punch-in systems to
-          ensure workers remain at their desks and to restrict their movement.</p>
-        <p>From another angle, the inhabitants within these towers are themselves alienated, reduced to mere screws
-          keeping the modern economic machine turning, or as Chinese white-collar workers widely mock themselves,
-          &quot;cattle-horses&quot; (牛马). It is, in a way, pretty fit: Aren&#x27;t cages where cattle are supposed to
-          be?</p>
-        <p>Wandering beneath these monolithic towers and looking up, I feel a cold, unyielding sense of power. Through
-          these megaconstructions, the capital broadcasts its declaration: &quot;Yes, I didn&#x27;t need to build it
-          this high... but I just can.&quot;</p>
+        <div class="panel">
+          <h2>3</h2>
+          <p>Although developers and corporations love excuses for turning their office towers into &quot;modern wonders,&quot; they can never quite hide the fact that these buildings have undergone a profound alienation. Their primary client has shifted from human beings to capital. Their capacity to provide a genuine space for living has degraded, degenerating instead into controlling, working hand-in-hand with punch-in systems to ensure workers remain at their desks and to restrict their movement.</p><p>From another angle, the inhabitants within these towers are themselves alienated, reduced to mere screws keeping the modern economic machine turning, or as Chinese white-collar workers widely mock themselves, &quot;cattle-horses&quot; (牛马). It is, in a way, pretty fit: Aren&#x27;t cages where cattle are supposed to be?</p><p>Wandering beneath these monolithic towers and looking up, I feel a cold, unyielding sense of power. Through these megaconstructions, the capital broadcasts its declaration: &quot;Yes, I didn&#x27;t need to build it this high... but I just can.&quot;</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:433vh" data-pe="0.1870" data-pd="0.6310">
+  <section class="scene scene--media" style="height:224vh" data-pe="0.3614" data-pd="0.8584">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/4.jpg')"></div>
       <img class="img-fg" src="photos/4.jpg" alt="">
       <div class="shot-box">(Shot at longhua, beside Zhita Building)</div>
       <div class="text-box">
-        <h2>4</h2>
-        <p>Shanghai’s night is always drowned in light pollution, keeping the empty buildings gleaming as brightly as
-          the day. Yet, I sometimes find myself walking past high-rises where almost all the lights have been
-          extinguished. Their details are swallowed by the dark, leaving only blurred, flickering silhouettes against
-          the night sky. In these moments, an inexplicable discomfort suddenly creeps over me, which is, what Sigmund
-          Freud described as the uncanny.</p>
-        <p>We are all too familiar with office towers by day. These giant structures are usually tied to a set of vivid
-          impressions: bright illumination, busy white-collar workers, and glass facades shimmering in the sunlight.
-          These images form our stereotype of &quot;modernity.&quot; But when humans are away from the scene and that
-          glossy impression evaporates, we seem to realize for the first time that these megaconstructions do not
-          require human presence at all. Rather, it is humans who must exhaust themselves just to fill their interiors.
-          From this perspective, it is not so much that they have become strange or unfamiliar in the dark, but that
-          their true nature has finally been exhibited wildly.</p>
-        <p>An alienated modernity hardly cares whether humans exist within it or not.</p>
+        <div class="panel">
+          <h2>4</h2>
+          <p>Shanghai’s night is always drowned in light pollution, keeping the empty buildings gleaming as brightly as the day. Yet, I sometimes find myself walking past high-rises where almost all the lights have been extinguished. Their details are swallowed by the dark, leaving only blurred, flickering silhouettes against the night sky. In these moments, an inexplicable discomfort suddenly creeps over me, which is, what Sigmund Freud described as the uncanny.</p><p>We are all too familiar with office towers by day. These giant structures are usually tied to a set of vivid impressions: bright illumination, busy white-collar workers, and glass facades shimmering in the sunlight. These images form our stereotype of &quot;modernity.&quot; But when humans are away from the scene and that glossy impression evaporates, we seem to realize for the first time that these megaconstructions do not require human presence at all. Rather, it is humans who must exhaust themselves just to fill their interiors. From this perspective, it is not so much that they have become strange or unfamiliar in the dark, but that their true nature has finally been exhibited wildly.</p><p>An alienated modernity hardly cares whether humans exist within it or not.</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:391vh" data-pe="0.1899" data-pd="0.6408">
+  <section class="scene scene--media" style="height:204vh" data-pe="0.3639" data-pd="0.8643">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/5.jpg')"></div>
       <img class="img-fg" src="photos/5.jpg" alt="">
       <div class="shot-box">(Shot beside Jinmao Tower)</div>
       <div class="text-box">
-        <h2>5</h2>
-        <p>Then again, I have to say that it is human nature to fascinate pure massiveness and sense of order. Whatever
-          meanings they take, they are the showcase of human power and collective efforts. And you have to acknowledge
-          that, they are extremely breathtaking, once you find the right angle.</p>
-        <p>There are communities surrounding the unique ‘megaconstruction aesthetics’. They have many reasons for
-          appreciating such arts. For example, giant constructions symbolize the conquest of human rationality,
-          engineering and wisdom over nature; They also give people senses of safe loneliness as well as freedom and
-          escape from reality by showing how small human beings are. Additionally, there can be pure awe to power and
-          the extraordinary. When I pass by the real-world megaconstructions, I do feel my heart caught by them because
-          of these reasons.</p>
+        <div class="panel">
+          <h2>5</h2>
+          <p>Then again, I have to say that it is human nature to fascinate pure massiveness and sense of order. Whatever meanings they take, they are the showcase of human power and collective efforts. And you have to acknowledge that, they are extremely breathtaking, once you find the right angle.</p><p>There are communities surrounding the unique ‘megaconstruction aesthetics’. They have many reasons for appreciating such arts. For example, giant constructions symbolize the conquest of human rationality, engineering and wisdom over nature; They also give people senses of safe loneliness as well as freedom and escape from reality by showing how small human beings are. Additionally, there can be pure awe to power and the extraordinary. When I pass by the real-world megaconstructions, I do feel my heart caught by them because of these reasons.</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:433vh" data-pe="0.1870" data-pd="0.6310">
+  <section class="scene scene--media" style="height:224vh" data-pe="0.3614" data-pd="0.8584">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/6.jpg')"></div>
       <img class="img-fg" src="photos/6.jpg" alt="">
       <div class="shot-box">(Shot beside Lujiazui subway station)</div>
       <div class="text-box">
-        <h2>6</h2>
-        <p>However, it is precisely here that art and reality diverge. Art can delve into pure beauty without restraint,
-          whereas human beings in reality must inevitably confront some nasty business of survival...</p>
-        <p>Wandering through the same quarter of Lujiazui with an empty stomach, I found not a single noodle shop,
-          casual diner, Shaxian Delicacies, or even a basic convenience store to grab a bite. There were only the
-          polished, radiant signboards of fine dining with average bills well over 1,000 RMB. These are spaces designed
-          for bosses to clink glasses and negotiate deals. It is said that in the Amazon rainforest, edible food is
-          actually surprisingly scarce; at that moment, I felt as though I were trapped in a similar jungle, one out of
-          steel and concrete monoliths.</p>
-        <p>Marc Augé once coined the concept of &quot;Non-Places&quot;. They are spaces in modern cities no longer
-          designed for human habitation or emotional connection, but strictly engineered for the circulation of capital.
-          They lack emotional depth and private memories; or in traditional Chinese terms, they lack &quot;liveliness
-          and warmth&quot; (烟火气). If we observe closely, we will find that the denser the megaconstructions are, the
-          more a space resembles a &quot;non-place&quot;, which is a distinct manifestation of modern alienation.</p>
+        <div class="panel">
+          <h2>6</h2>
+          <p>However, it is precisely here that art and reality diverge. Art can delve into pure beauty without restraint, whereas human beings in reality must inevitably confront some nasty business of survival...</p><p>Wandering through the same quarter of Lujiazui with an empty stomach, I found not a single noodle shop, casual diner, Shaxian Delicacies, or even a basic convenience store to grab a bite. There were only the polished, radiant signboards of fine dining with average bills well over 1,000 RMB. These are spaces designed for bosses to clink glasses and negotiate deals. It is said that in the Amazon rainforest, edible food is actually surprisingly scarce; at that moment, I felt as though I were trapped in a similar jungle, one out of steel and concrete monoliths.</p><p>Marc Augé once coined the concept of &quot;Non-Places&quot;. They are spaces in modern cities no longer designed for human habitation or emotional connection, but strictly engineered for the circulation of capital. They lack emotional depth and private memories; or in traditional Chinese terms, they lack &quot;liveliness and warmth&quot; (烟火气). If we observe closely, we will find that the denser the megaconstructions are, the more a space resembles a &quot;non-place&quot;, which is a distinct manifestation of modern alienation.</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:391vh" data-pe="0.1899" data-pd="0.6408">
+  <section class="scene scene--media" style="height:204vh" data-pe="0.3639" data-pd="0.8643">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/7.jpg')"></div>
       <img class="img-fg" src="photos/7.jpg" alt="">
       <div class="shot-box">(Shot at the beginning of Century Avenue)</div>
       <div class="text-box">
-        <h2>7</h2>
-        <p>What is a city? What is modernity? These questions may not have simple answers. However, our discussion above
-          might unravel a disturbing dimension of truth, that is citiness can be composed of pure spectacle, without
-          humans inside. Or, humans are inside, but no one cares about them, even themselves. Along two sides of the
-          avenue, countless high-rises stand, and streams of cars flow in the middle. In this order there are humans,
-          however, not a single person can be seen. We are of many, but we are all alone.</p>
-        <p>We are wanderers, in the great modern.</p>
+        <div class="panel">
+          <h2>7</h2>
+          <p>What is a city? What is modernity? These questions may not have simple answers. However, our discussion above might unravel a disturbing dimension of truth, that is citiness can be composed of pure spectacle, without humans inside. Or, humans are inside, but no one cares about them, even themselves. Along two sides of the avenue, countless high-rises stand, and streams of cars flow in the middle. In this order there are humans, however, not a single person can be seen. We are of many, but we are all alone.</p><p>We are wanderers, in the great modern.</p>
+        </div>
       </div>
     </div>
   </section>
-  <section class="scene scene--media" style="height:519vh" data-pe="0.1819" data-pd="0.6139">
+  <section class="scene scene--media" style="height:264vh" data-pe="0.3576" data-pd="0.8492">
     <div class="sticky">
       <div class="img-bg" style="background-image:url('photos/8.jpg')"></div>
       <img class="img-fg" src="photos/8.jpg" alt="">
       <div class="shot-box">(Shot Beside Shanghai Tech Museum)</div>
       <div class="text-box">
-        <h2>8</h2>
-        <p>Now, are we in despair?...Of course not.</p>
-        <p>Even in the deepest corners of this steel jungle, you can still find people out for a leisurely walk (like
-          myself), elderly folks gathering for square dancing (Although they are also insufferable), and all kinds of
-          individuals simply going about their daily lives. My response to a city occupied by megaconstructions is
-          actually quite simple: a megaconstruction is ultimately just infrastructure, just another piece of the urban
-          landscape. If you stand outside of it, you can freely appreciate its spectacle; if you find yourself trapped
-          within it, I believe there are still quiet nooks where you can carve out a world of your own.</p>
-        <p>Besides, this monolith is hardly an airtight fortress. A public bus that costs just 2 RMB can roll onto the
-          start of Century Avenue with the exact same right of way as a multi-million-dollar supercar.</p>
-        <p>We can admit that modernity has been alienated, and that we too face the risk of being alienated by it. Yet
-          precisely because of this, we cannot afford to become numb, nor should we let ourselves be consumed by
-          bitterness.</p>
-        <p>So, get downstairs more often. Look up at the sky. Take a few photos—or don&#x27;t. That’s also fine.</p>
+        <div class="panel">
+          <h2>8</h2>
+          <p>Now, are we in despair?...Of course not.</p><p>Even in the deepest corners of this steel jungle, you can still find people out for a leisurely walk (like myself), elderly folks gathering for square dancing (Although they are also insufferable), and all kinds of individuals simply going about their daily lives. My response to a city occupied by megaconstructions is actually quite simple: a megaconstruction is ultimately just infrastructure, just another piece of the urban landscape. If you stand outside of it, you can freely appreciate its spectacle; if you find yourself trapped within it, I believe there are still quiet nooks where you can carve out a world of your own.</p><p>Besides, this monolith is hardly an airtight fortress. A public bus that costs just 2 RMB can roll onto the start of Century Avenue with the exact same right of way as a multi-million-dollar supercar.</p><p>We can admit that modernity has been alienated, and that we too face the risk of being alienated by it. Yet precisely because of this, we cannot afford to become numb, nor should we let ourselves be consumed by bitterness.</p><p>So, get downstairs more often. Look up at the sky. Take a few photos—or don&#x27;t. That’s also fine.</p>
+        </div>
       </div>
     </div>
   </section>
-  <footer class="end">Thank you for reading.</footer>
-  <script>
-    (function () {
-      var scenes = [].slice.call(document.querySelectorAll('.scene'));
-      var progress = document.getElementById('progress');
-      function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-      var ticking = false;
-      function update() {
-        ticking = false;
-        var vh = window.innerHeight;
-        for (var i = 0; i < scenes.length; i++) {
-          var sc = scenes[i];
-          var r = sc.getBoundingClientRect();
-          var total = r.height - vh;
-          var p = clamp(-r.top / total, 0, 1);
-          if (sc.getAttribute('data-type') === 'poem') {
-            var el = sc.querySelector('.poem');
-            var o = clamp(p / 0.18, 0, 1) * (1 - clamp((p - 0.70) / 0.25, 0, 1));
-            el.style.opacity = o;
-            continue;
-          }
-          var fg = sc.querySelector('.img-fg');
-          var shot = sc.querySelector('.shot-box');
-          var tb = sc.querySelector('.text-box');
-          var pe = parseFloat(sc.getAttribute('data-pe')) || 0.16;
-          var pd = parseFloat(sc.getAttribute('data-pd')) || 0.54;
-          var fin = clamp(p / pe, 0, 1);
-          fg.style.opacity = fin;
-          var sh = clamp((p / pe - 0.15) / 0.85, 0, 1);
-          fg.style.filter = 'blur(' + (16 * (1 - sh)).toFixed(2) + 'px)';
-          if (shot) {
-            var sin = clamp((p - pe) / 0.03, 0, 1);
-            var sout = clamp((p - (pd - 0.03)) / 0.03, 0, 1);
-            shot.style.opacity = sin * (1 - sout);
-          }
-          var tin = clamp((p - pd) / 0.06, 0, 1);
-          tb.style.opacity = tin;
-          tb.style.transform = 'translate(-50%,-50%) scale(' + (0.96 + 0.04 * tin).toFixed(3) + ')';
-        }
-        var doc = document.documentElement;
-        var denom = (doc.scrollHeight - vh) || 1;
-        var sp = clamp(window.scrollY / denom, 0, 1);
-        progress.style.width = (sp * 100) + '%';
+<footer class="end">Thank you for reading.</footer>
+<script>
+(function(){
+  var scenes=[].slice.call(document.querySelectorAll('.scene'));
+  var progress=document.getElementById('progress');
+  var drawerTab=document.getElementById('drawerTab');
+  var drawer=document.getElementById('drawer');
+  var drawerImg=document.getElementById('drawerImg');
+  var drawerScrim=document.getElementById('drawerScrim');
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function activeScene(){
+    var vh=window.innerHeight;
+    for(var i=0;i<scenes.length;i++){
+      var r=scenes[i].getBoundingClientRect();
+      if(r.top<=1 && r.bottom>=vh-1) return scenes[i];
+    }
+    return null;
+  }
+  function closeDrawer(){ drawer.classList.remove('open'); drawerScrim.classList.remove('open'); }
+  drawerTab.addEventListener('click',function(){
+    var act=activeScene(); if(!act) return;
+    var img=act.querySelector('.img-fg');
+    if(img) drawerImg.src=img.getAttribute('src');
+    drawer.classList.add('open'); drawerScrim.classList.add('open');
+  });
+  drawerScrim.addEventListener('click',closeDrawer);
+  drawerImg.addEventListener('click',closeDrawer);
+  var ticking=false;
+  function update(){
+    ticking=false;
+    var vh=window.innerHeight;
+    for(var i=0;i<scenes.length;i++){
+      var sc=scenes[i];
+      var r=sc.getBoundingClientRect();
+      var total=r.height-vh;
+      var p=clamp(-r.top/total,0,1);
+      if(sc.getAttribute('data-type')==='poem'){
+        var el=sc.querySelector('.poem');
+        var o=clamp(p/0.18,0,1)*(1-clamp((p-0.70)/0.25,0,1));
+        el.style.opacity=o;
+        continue;
       }
-      function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', update);
-      update();
-    })();
-  </script>
+      var fg=sc.querySelector('.img-fg');
+      var shot=sc.querySelector('.shot-box');
+      var pe=parseFloat(sc.getAttribute('data-pe'))||0.16;
+      var pd=parseFloat(sc.getAttribute('data-pd'))||0.54;
+      var isText = p>=pd;
+      // only the image stage needs per-frame fade/blur work; skip it in the text
+      // stage to avoid needless style recalcs (helps keep scrolling smooth)
+      if(!isText){
+        var fin=clamp(p/pe,0,1);
+        fg.style.opacity=fin;
+        var sh=clamp((p/pe-0.15)/0.85,0,1);
+        fg.style.filter='blur('+(16*(1-sh)).toFixed(2)+'px)';
+        if(shot){
+          var sin=clamp((p-pe)/0.03,0,1);
+          var sout=clamp((p-(pd-0.03))/0.03,0,1);
+          shot.style.opacity=sin*(1-sout);
+        }
+      }
+      // quantized stage flip at pd (discrete state -> CSS spring does the motion)
+      if(isText){ sc.classList.add('stage-text'); }
+      else { sc.classList.remove('stage-text'); }
+      // the panel is sized to fit; keep it still (no vertical slide of the text).
+      // cached viewport budget -> no per-frame layout reads.
+      var panel=sc.querySelector('.panel');
+      if(panel && isText){
+        var avail=viewAvail;
+        var ph=panel._h||0;
+        var ty = ph<=avail ? ((avail-ph)/2) : 0; // center if it fits, else pin to top
+        panel.style.transform='translateY('+ty.toFixed(1)+'px)';
+      }
+    }
+    var doc=document.documentElement;
+    var denom=(doc.scrollHeight-vh)||1;
+    var sp=clamp(window.scrollY/denom,0,1);
+    progress.style.width=(sp*100)+'%';
+    var act=activeScene();
+    // drawer handle appears ONLY after the text has popped out (text stage)
+    drawerTab.classList.toggle('hidden', !(act && act.classList.contains('scene--media') && act.classList.contains('stage-text')));
+  }
+  function onScroll(){
+    if(drawer.classList.contains('open')) closeDrawer();
+    if(!ticking){ ticking=true; requestAnimationFrame(update); }
+  }
+  var viewAvail=0;
+  var rootStyle=document.documentElement.style;
+  function maxPanelH(){
+    var m=0;
+    for(var i=0;i<scenes.length;i++){
+      var pn=scenes[i].querySelector('.panel');
+      if(pn){
+        pn.style.removeProperty('transform'); // measure untranslated
+        var hh=pn.offsetHeight;
+        pn._h=hh;
+        if(hh>m){ m=hh; }
+      }
+    }
+    return m;
+  }
+  // Binary-search the LARGEST --fs at which the tallest panel still fits one
+  // screen. Robust against line-count jumps (H is non-decreasing in --fs).
+  // Text is never made smaller than necessary; on big screens it grows.
+  function fitAll(){
+    viewAvail=window.innerHeight*0.92;   // text-box padding is 4vh top + bottom
+    var limit=viewAvail*0.97;            // must fit with a small safety margin
+    var lo=0.45, hi=1.2, best=0.45;
+    for(var k=0;k<13;k++){
+      var mid=(lo+hi)/2;
+      rootStyle.setProperty('--fs',mid);
+      var H=maxPanelH();
+      if(H<=limit){ best=mid; lo=mid; } else { hi=mid; }
+    }
+    rootStyle.setProperty('--fs',best);
+    maxPanelH(); // refresh cache for centering
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',function(){ fitAll(); update(); });
+  window.addEventListener('load',function(){ fitAll(); update(); });
+  fitAll();
+  update();
+})();
+</script>
 </body>
-
 </html>
