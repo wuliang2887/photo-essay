@@ -13,3 +13,4 @@ photos/*.docx
 
 # Office temp lock files
 ~$*
+~WRL*.tmp

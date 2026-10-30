@@ -46,9 +46,17 @@ texts = [t.strip() for t in paras if t.strip()]
 # ---------- split into structure ----------
 title = texts[0]
 idx_intro = texts.index("Introduction")
-poem = texts[1:idx_intro]
-attr = poem[-1] if poem[-1].startswith("\u2014\u2014") else None  # ——
-poem_lines = poem[:-1] if attr else poem
+# The region between the title and "Introduction" is: poem lines, the
+# attribution line starting with "——", then an optional pre-reading prompt
+# (its own text-only page). Split on the attribution line, not on position.
+poem_region = texts[1:idx_intro]
+attr_i = next((k for k, l in enumerate(poem_region) if l.startswith("\u2014\u2014")), None)
+if attr_i is None:
+    poem_lines, attr, preread = poem_region, None, []
+else:
+    poem_lines = poem_region[:attr_i]
+    attr = poem_region[attr_i]
+    preread = poem_region[attr_i + 1:]
 
 j = idx_intro + 1
 intro_shot = None
@@ -71,10 +79,21 @@ while j < len(texts):
         body.append(texts[j]); j += 1
     sections.append((num, shot, body))
 
+# The trailing "Addendum" block belongs on its own page AFTER the thanks page,
+# so pull it out of the final numbered section.
+addendum_body = []
+if sections:
+    num, shot, body = sections[-1]
+    if "Addendum" in body:
+        k = body.index("Addendum")
+        addendum_body = body[k + 1:]
+        sections[-1] = (num, shot, body[:k])
+
 print(f"title={title!r}")
-print(f"poem lines={len(poem_lines)}, attr={attr!r}")
+print(f"poem lines={len(poem_lines)}, attr={attr!r}, preread lines={len(preread)}")
 print(f"intro shot={intro_shot!r}, body paras={len(intro_body)}")
 print(f"sections={[(s[0], bool(s[1]), len(s[2])) for s in sections]}")
+print(f"addendum paragraphs={len(addendum_body)}")
 
 # ---------- html builders ----------
 def esc(s):
@@ -104,6 +123,35 @@ def poem_scene(lines, attr, height=300):
     return f'''  <section class="scene scene--poem" style="height:{height}vh" data-type="poem">
     <div class="sticky">
       <div class="poem" id="poem">{body}{attr_html}</div>
+    </div>
+  </section>
+'''
+
+def preread_page(lines):
+    """Text-only page between the poem and the Introduction: no photo,
+    centered, largest type on the site."""
+    if not lines:
+        return ""
+    head = lines[0] if len(lines) > 1 else ""
+    question = " ".join(lines[1:]) if len(lines) > 1 else lines[0]
+    head_html = f'<p class="preread-line">{esc(head)}</p>' if head else ""
+    return f'''  <section class="page-block page--preread">
+    <div class="preread">
+      {head_html}
+      <p class="preread-q">{esc(question)}</p>
+    </div>
+  </section>
+'''
+
+def addendum_page(body, heading="Addendum"):
+    """Own page after the thanks: heading top-left, body left-aligned, medium."""
+    if not body:
+        return ""
+    ps = "".join(f"<p>{esc(b)}</p>" for b in body)
+    return f'''  <section class="page-block page--addendum">
+    <div class="addendum">
+      <h2>{esc(heading)}</h2>
+      {ps}
     </div>
   </section>
 '''
@@ -194,6 +242,27 @@ body{background:var(--bg);color:var(--text);
   font-size:clamp(1.4rem,3vw,2.4rem);color:var(--purple);letter-spacing:.06em;
   text-align:center;padding:0 1rem;}
 
+/* PRE-READING page: between poem and Introduction, no photo, largest type, centered */
+.page--preread{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:8vh 4vw;text-align:center;}
+.preread{max-width:min(1100px,92vw);}
+.preread-line{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--purple);font-size:clamp(1rem,2.1vh,1.55rem);letter-spacing:.1em;
+  opacity:.9;margin-bottom:clamp(1.2rem,3.4vh,2.6rem);}
+.preread-q{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:#fff;font-weight:700;font-size:clamp(1.55rem,4.3vh,3.1rem);
+  line-height:1.42;text-shadow:0 0 30px var(--purple-soft);}
+
+/* ADDENDUM page: after the thanks, heading top-left, body left-aligned medium */
+.page--addendum{min-height:100vh;padding:11vh 7vw 9vh;}
+.addendum{max-width:820px;}
+.addendum h2{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--purple);font-size:clamp(1.6rem,3.1vh,2.3rem);letter-spacing:.04em;
+  margin-bottom:1.6rem;text-align:left;}
+.addendum p{font-size:clamp(1rem,1.6vh,1.24rem);line-height:1.75;
+  margin-bottom:.85rem;color:var(--text);text-align:left;}
+.addendum p:last-child{margin-bottom:0;}
+
 /* LEFT DRAWER TRIGGER */
 #drawerTab{position:fixed;left:0;top:50%;transform:translateY(-50%);
   width:34px;height:88px;background:var(--purple);color:#fff;cursor:pointer;
@@ -228,14 +297,21 @@ body{background:var(--bg);color:var(--text);
 # poem scene (text-only, no image dwell to preserve -> can be lean)
 poem_html = poem_scene(poem_lines, attr, height=220)
 
+# pre-reading page between the poem and the Introduction (no photo)
+preread_html = preread_page(preread)
+
+# Scale of the text-stage scroll budget. 1.0 = original (too long, felt stuck),
+# 0.2 = too short (easy to flick past). 0.35 is the tuned middle.
+TEXT_HOLD_SCALE = 0.35
+
 def budget(n):
     # image fades in then collapses as the user scrolls down; the text stage is
-    # now only 1/5 of its former length so a reader is not "stuck" on a pinned
-    # screen -> scrolling right after the text appears moves on promptly.
+    # a fraction of its former length so a reader is not "stuck" on a pinned
+    # screen, yet still has enough dwell not to overshoot.
     oldH = 380 + n * 42
     FADE = 0.16 * oldH
     DWELL = 0.22 * oldH
-    TEXT = (100 + n * 20) * 0.2   # text hold = 1/5 of the old budget
+    TEXT = (100 + n * 20) * TEXT_HOLD_SCALE
     H = round(FADE + DWELL + TEXT)
     pe = FADE / H
     pd = (FADE + DWELL) / H      # = cut point between IMAGE stage and TEXT stage
@@ -251,8 +327,11 @@ for num, shot, body in sections:
     H, pe, pd = budget(len(body))
     media_html += media_scene(f"photos/{num}.jpg", shot, num, body, H, pe, pd)
 
-END = '''<footer class="end">Thank you for reading.</footer>
+END = '''<footer class="end">Thank you for reading, and seeing.</footer>
 '''
+
+# addendum page after the thanks
+addendum_html = addendum_page(addendum_body)
 
 SCRIPT = '''<script>
 (function(){
@@ -380,7 +459,7 @@ SCRIPT = '''<script>
 </html>
 '''
 
-html_out = HEAD + poem_html + intro_html + media_html + END + SCRIPT
+html_out = HEAD + poem_html + preread_html + intro_html + media_html + END + addendum_html + SCRIPT
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(html_out)
 print("wrote", OUT, "bytes=", len(html_out))
